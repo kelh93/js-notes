@@ -178,3 +178,166 @@ let mySquare = createSquare(squareOptions);
 
 
 
+```typescript
+// 接口定义了一个函数: 参数是source,subString,返回值类型是boolean
+interface searchFunc {
+	(source: string, subString: string): boolean;
+}
+
+```
+
+这样定义后，我们可以像使用其它接口一样使用这个函数类型的接口。 下例展示了如何创建一个函数类型的变量，并将一个同类型的函数赋值给这个变量。
+
+```typescript
+let mySearch: SearchFunc;
+mySearch = function(source: string, subString: string) {
+  let result = source.search(subString);
+  return result > -1;
+}
+```
+
+对于函数类型的类型检查来说，函数的参数名不需要与接口里定义的名字相匹配。 比如，我们使用下面的代码重写上面的例子：
+
+```typescript
+let mySearch: SearchFunc;
+// 函数参数名不用和接口定义的名字相匹配
+mySearch = function(src: string, sub: string): boolean {
+  let result = src.search(sub);
+  return result > -1;
+}
+```
+
+函数的参数会逐个进行检查，要求对应位置上的参数类型是兼容的。 如果你不想指定类型，TypeScript的类型系统会推断出参数类型，因为函数直接赋值给了 `SearchFunc`类型变量。 函数的返回值类型是通过其返回值推断出来的（此例是 `false`和`true`）。 如果让这个函数返回数字或字符串，类型检查器会警告我们函数的返回值类型与 `SearchFunc`接口中的定义不匹配。
+
+```typescript
+let mySearch: SearchFunc;
+// 类型可省略,TS会进行类型推断.
+mySearch = function(src, sub) {
+    let result = src.search(sub);
+    return result > -1;
+}
+```
+
+### 可索引的类型
+
+与使用接口描述函数类型差不多，我们也可以描述那些能够“通过索引得到”的类型，比如`a[10]`或`ageMap["daniel"]`。 可索引类型具有一个 *索引签名*，它描述了对象索引的类型，还有相应的索引返回值类型。 让我们看一个例子：
+
+```typescript
+interface StringArray {
+	[index: number]: string;
+}
+let myArray : StringArray;
+myArray = ['Bob', 'Fred'];
+let myStr : string = myArray[0];
+```
+
+上面例子里，我们定义了`StringArray`接口，它具有索引签名。 这个索引签名表示了当用 `number`去索引`StringArray`时会得到`string`类型的返回值。
+
+TypeScript支持两种索引签名：字符串和数字。 可以同时使用两种类型的索引，但是数字索引的返回值必须是字符串索引返回值类型的子类型。 这是因为当使用 `number`来索引时，JavaScript会将它转换成`string`然后再去索引对象。 也就是说用 `100`（一个`number`）去索引等同于使用`"100"`（一个`string`）去索引，因此两者需要保持一致。
+
+```typescript
+class Animal {
+    name: string;
+}
+class Dog extends Animal {
+    breed: string;
+}
+
+// 错误：使用数值型的字符串索引，有时会得到完全不同的Animal!
+// ??? 这里是什么错误?
+interface NotOkay {
+    [x: number]: Animal;
+    [x: string]: Dog;
+}
+
+class Pig extends Animal {
+    ead: string;
+}
+
+let test : NotOkay;
+let dog1 = new Dog();
+let dog2 = new Dog();
+let pigg = new Pig();
+
+test = [dog1, dog2, pigg];
+test[2] => test['2'] => 会查找到Dog
+// 正确写法
+interface NotOkay {
+    [x: number]: Dog;
+    [x: string]: Animal;
+}
+```
+
+> 笔记: 
+>
+> [引用@大史不说话] Animal比Dog更抽象， [x:string]比[x:number]更抽象，所以对应关系反了，看上面解释应该是这个意思, 比如用Pig extends Animal 赋值到[x:number]，它也是Animal，但是搜的时候会转成[x:string]去搜，Pig和Dog这两个子类就冲突了.
+>
+> 笔者理解:
+>
+> ```typescript
+> class Pig extends Animal {
+>     ead: string;
+> }
+> 
+> let test : NotOkay;
+> let dog1 = new Dog();
+> let dog2 = new Dog();
+> let pigg = new Pig();
+> 
+> test = [dog1, dog2, pigg];
+> test[2] => test['2'] => 会查找到Dog
+> // 正确写法
+> interface NotOkay {
+>     [x: number]: Dog;
+>     [x: string]: Animal;
+> }
+> ```
+>
+> 
+
+
+
+字符串索引签名能够很好的描述`dictionary`模式，并且它们也会确保所有属性与其返回值类型相匹配。 因为字符串索引声明了 `obj.property`和`obj["property"]`两种形式都可以。 下面的例子里， `name`的类型与字符串索引类型不匹配，所以类型检查器给出一个错误提示：
+
+```typescript
+interface NumberDictionary {
+  [index: string]: number;
+  length: number;    // 可以，length是number类型
+  name: string       // 错误，`name`的类型与索引类型返回值的类型不匹配
+}
+```
+
+最后，你可以将索引签名设置为只读，这样就防止了给索引赋值:
+
+```typescript
+interface ReadonlyStringArray {
+    readonly [index: number]: string;
+}
+let myArray: ReadonlyStringArray = ["Alice", "Bob"];
+myArray[2] = "Mallory"; // error!
+```
+
+### 类类型
+
+#### 实现接口
+
+与C#或Java里接口的基本作用一样，TypeScript也能够用它来明确的强制一个类去符合某种契约。
+
+```typescript
+// 接口 ClockInterface
+interface ClockInterface {
+    currentTime: Date;
+}
+// 实现 接口的类
+class Clock implements ClockInterface {
+    currentTime: Date;
+    constructor(h: number, m: number) { }
+}
+```
+
+> 怎么样才算实现了一个接口?
+
+
+
+
+
