@@ -198,3 +198,31 @@ var firstUniqChar = function(s) {
 };
 ```
 
+#### 改进写法
+
+```javascript
+var firstUniqChar = function(s){
+  let h = new Map, i = s.length;
+  while(i--){
+    h.set(s[i], h.has(s[i])) ? h.get(s[i]) + 1 : 1;
+  }
+  i = -1;
+  while(++i < s.length){
+    if(h.get(s[i] === 1)){
+      return i;
+		}
+  }
+  return -1;
+}
+```
+
+其他解法：
+
+- Object
+- 哈希映射，首次出现设置 `值和索引`，再次出现设置为-1，最后找到 `！== -1`  的字符
+- 正则，search
+
+- 位运算
+  - 小写字母`unicode编码 - 97`对应`[0,25]`，再对应二进制中的`位`，1 字母存在，0 不存在。
+
+- 队列
